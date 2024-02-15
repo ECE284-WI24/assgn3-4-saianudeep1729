@@ -1,0 +1,79 @@
+/home/snayini/assgn3-4-saianudeep1729
+-- Building Intel TBB: /usr/bin/make -j80 tbb_build_prefix=tbb_cmake_build_subdir tbb_build_dir=/home/snayini/assgn3-4-saianudeep1729/build/tbb_cmake_build compiler=gcc tbb_cpf=1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/snayini/assgn3-4-saianudeep1729/build
+[100%] Built target readMapper
+Setting CPU threads to 4 and printing GPU device properties.
+Device Number: 0
+  Device name: NVIDIA GeForce RTX 2080 Ti
+  Device memory: 11546394624
+  Memory Clock Rate (KHz): 7000000
+  Memory Bus Width (bits): 352
+  Peak Memory Bandwidth (GB/s): 616.000000
+Completed in 49 msec 
+
+Reading reference sequence and compressing to two-bit encoding.
+Sequence name: reference
+Sequence size: 25000000
+Completed in 40 msec 
+
+Compressing reference, transferring to GPU device and constructing the seed table.
+i	kmerOffset[i]	kmerPos[i]
+0	6	1465414
+1	12	3049248
+2	16	8743788
+3	22	8743789
+4	26	9294743
+5	27	9294744
+6	30	6654308
+7	39	9294742
+8	42	9903431
+9	45	13940308
+Completed in 7413 msec 
+
+Reading read file ../data/reads.fa and mapping the reads to the reference.
+READ_ID	MAP_SCORE	START_COORD	END_COORD
+read_1	240	9672236	9672492
+read_2	232	12722936	12723192
+read_3	245	18980751	18981007
+read_4	243	10620279	10620535
+read_5	227	17965200	17965456
+read_6	231	5086832	5087088
+read_7	246	10748739	10748995
+read_8	219	9544830	9545086
+read_9	222	24283777	24284033
+read_10	209	14249192	14249448
+read_11	243	101563	101819
+read_12	229	10771564	10771820
+read_13	248	19168123	19168379
+read_14	252	22570424	22570680
+read_15	237	9993196	9993452
+read_16	250	7859255	7859511
+read_17	217	10938969	10939225
+read_18	223	7235223	7235479
+read_19	202	14932997	14933253
+read_20	252	9943637	9943893
+read_21	244	22559841	22560097
+read_22	221	13465789	13466045
+read_23	243	24238543	24238799
+read_24	231	23405192	23405448
+read_25	254	13081281	13081537
+read_26	213	10943854	10944110
+read_27	223	22971469	22971725
+read_28	254	23910649	23910905
+read_29	251	3076833	3077089
+read_30	243	23616288	23616544
+read_31	228	3642770	3643026
+read_32	248	21814823	21815079
+read_33	215	13297302	13297558
+read_34	221	5862829	5863085
+read_35	230	4639476	4639732
+read_36	236	18413233	18413489
+read_37	256	21369433	21369689
+read_38	93	1412489	1412745
+read_39	249	18522935	18523191
+read_40	242	23425566	23425822
+Completed in 19 msec 
+
+Clearing reference arrays and exiting.
