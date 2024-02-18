@@ -1,0 +1,15 @@
+/home/snayini/assgn3-4-saianudeep1729
+-- Building Intel TBB: /usr/bin/make -j64 tbb_build_prefix=tbb_cmake_build_subdir tbb_build_dir=/home/snayini/assgn3-4-saianudeep1729/build/tbb_cmake_build compiler=gcc tbb_cpf=1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/snayini/assgn3-4-saianudeep1729/build
+[100%] Built target readMapper
+==277== NVPROF is profiling process 277, command: ./readMapper --reference ../data/reference.fa --reads ../data/reads.fa --maxReads 40 --batchSize 10
+terminate called after throwing an instance of 'thrust::system::system_error'
+  what():  radix_sort: failed on 1st step: cudaErrorInvalidDeviceFunction: invalid device function
+==277== Profiling application: ./readMapper --reference ../data/reference.fa --reads ../data/reads.fa --maxReads 40 --batchSize 10
+==277== Profiling result:
+No kernels were profiled.
+No API activities were profiled.
+==277== Warning: Some profiling data are not recorded.
+======== Error: Application received signal 134

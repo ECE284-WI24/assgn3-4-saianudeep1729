@@ -1,6 +1,58 @@
 
+                // Ensure each thread works on a valid part of the sequence
+   
 
+                        /*
+                                            //Mapping score using prefix sum
+                    uint32_t mappingScore=0;
+                    uint32_t rIndex = (refStart+tx-1)/16;
+                    uint32_t rShift = 2*((refStart+tx-1)%16);
+                    uint32_t qIndex = (qStart+tx-1)/16;
+                    uint32_t qShift = 2*((qStart+tx-1)%16);
 
+                    int pout=0, pin=1;
+                    
+                    if(tx <= alignLen && tx>0){
+                        if(((d_compressedRef[rIndex] >> rShift) & twoBitMask) == ((sharedRead[qIndex] >> qShift) & twoBitMask))
+                        map_score[pout*(alignLen+1) + tx] = 1;
+                        else
+                        map_score[pout*(alignLen+1) + tx] = 0;
+                    }
+                    __syncthreads();
+                    for(int offset = 1; offset < alignLen; offset *= 2){
+                        if(tx <= alignLen){
+                            pout = 1 - pout;
+                            pin = 1 - pin;
+                            if(tx >= offset){
+                                map_score[pout*(alignLen+1)+tx] = map_score[pin*(alignLen+1)+tx] + map_score[pin*(alignLen+1)+tx-offset];
+                            } else {
+                                map_score[pout*(alignLen+1)+tx] = map_score[pin*(alignLen+1)+tx];
+                            }
+                        }
+
+                        __syncthreads();
+                    }
+                    mappingScore = map_score[pout*(alignLen+1)+alignLen];
+                    
+                    if (mappingScore > bestMappingScore) {
+                        bestMappingScore = mappingScore;
+                        bestMappingStartCoords = refStart;
+                        bestMappingEndCoords = refStart+alignLen; 
+                    }
+
+                }
+            }
+            lastKmerPos = currKmerPos;
+        }
+
+        if(tx == 0){
+            d_mappingScores[readNum] =  bestMappingScore;
+            d_mappingStartCoords[readNum] =  bestMappingStartCoords;
+            d_mappingEndCoords[readNum] =  bestMappingEndCoords;
+        }
+    }
+}
+*/
 
 #include "readMapper.cuh"
 #include <stdio.h>

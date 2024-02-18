@@ -1,3 +1,4 @@
+#define NUM_BANKS 16 #define LOG_NUM_BANKS 4 #define CONFLICT_FREE_OFFSET(n) \     ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
 #include "readMapper.cuh"
 #include <stdio.h>
 #include <thrust/sort.h>
@@ -499,6 +500,7 @@ void GpuReadMapper::seedTableOnGpu (
  *  6. Any additional optimization you can think of that improves performance
  *  7. You may assume a read length (readSize) of 256
  * */
+
 /*
 __global__ void readMapper(
         uint64_t batchSize,
@@ -512,7 +514,8 @@ __global__ void readMapper(
         uint32_t refLen,
         uint32_t* d_mappingScores,
         uint32_t* d_mappingStartCoords,
-        uint32_t* d_mappingEndCoords) {
+        uint32_t* d_mappingEndCoords,
+        uint32_t* globalSum) {
 
     int tx = threadIdx.x;
     int bx = blockIdx.x;
@@ -616,9 +619,9 @@ __global__ void readMapper(
             d_mappingEndCoords[readNum] =  bestMappingEndCoords;
         }
     }
+
 }
 */
-
 
 __global__ void readMapper(
         uint64_t batchSize,
@@ -632,50 +635,50 @@ __global__ void readMapper(
         uint32_t refLen,
         uint32_t* d_mappingScores,
         uint32_t* d_mappingStartCoords,
-        uint32_t* d_mappingEndCoords) {
-
-    int gs = gridDim.x;
-    int bs = blockDim.x;
+        uint32_t* d_mappingEndCoords,
+        uint32_t* globalSum) {
 
     int tx = threadIdx.x;
-    int bx = blockIdx.x;
+    //int bx = blockIdx.x;
 
     __shared__ uint64_t windowKmerPos[256];
-    // Read batch in shared memory due to repeated accesses to the same region
-    __shared__ uint32_t s_compressedReadBatch[16];
+    __shared__ uint32_t sharedRead[16]; // Assuming readSize=256, thus readSize/16=16, adjust as necessary
     // Array used to compute prefix sum
-    __shared__ uint32_t prefixSumArray[520];
+    __shared__ uint32_t sharedRef[16];
+    __shared__ uint32_t map_score[1024];
 
     uint32_t kmerMask = (1 << 2*kmerSize) - 1;
     uint32_t posMask = (1 << 30) - 1;
     uint32_t twoBitMask = 3;
     uint64_t lastKmerPos = 16;
     uint64_t currKmerPos = 0;
-
+    //uint32_t start_bx = bx;
+    //uint32_t end_bx = min(batchSize,start_bx+batchSize);
     uint32_t compressedReadLen = (readLen+15)/16;
-    for (uint64_t readNum=bx; readNum<batchSize; readNum+=gs) {
+    for (uint64_t readNum=blockIdx.x;readNum<batchSize; readNum+=gridDim.x) {
         uint32_t startAddress = readNum*compressedReadLen;
         
        // uint32_t windowIdx = tx;
 
         uint32_t bestMappingScore = 0;
-        uint32_t bestMappingStartCoords = 0;
+        uint32_t bestMappingStartCoords = 0; 
         uint32_t bestMappingEndCoords = 0;
 
         uint32_t numKmers = readLen-kmerSize+1;
 
-        // Copy read batch into shared memory
-        if(tx < compressedReadLen){
-            s_compressedReadBatch[tx] = d_compressedReadBatch[startAddress + tx];
-        }
+       // Load compressed read sequence into shared memory (coalesced access)
+           if (tx < compressedReadLen) {
+               sharedRead[tx] = d_compressedReadBatch[startAddress + tx];
+               sharedRef[tx] = d_compressedRef[tx];
+           }
         __syncthreads();
 
         // precompute all kmers in the read
-        for(int i = tx; i < numKmers; i+=bs){
+        for(int i = tx; i < numKmers; i+=blockDim.x){
             uint32_t index = i/16;
             uint32_t shift1 = 2*(i%16);
-            uint64_t val1 = s_compressedReadBatch[index];
-            uint64_t val2 = (index+1 < compressedReadLen) ? s_compressedReadBatch[index+1] : 0;
+            uint64_t val1 = sharedRead[index];
+            uint64_t val2 = (index+1 < compressedReadLen) ? sharedRead[index+1] : 0;
             if (shift1 > 0) {
                 uint32_t shift2 = (32-shift1);
                 currKmerPos = ((val1 >> shift1) + (val2 << shift2)) & kmerMask;
@@ -687,21 +690,19 @@ __global__ void readMapper(
         }
         __syncthreads();
 
-        // Find minimum in each window and then using the seed table, find match score
+        // Prefix min for minimizer seed finding within window using parallel reduction
         for(int i = 0; i < numKmers-kmerWindow+1; i++){
-            // reference: https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
-            // calculating minimum: reduction
-            for(uint32_t s = (kmerWindow+1)/2; s > 0; s>>=1){
-                if(tx < s && tx+s < kmerWindow){
+            for(uint32_t s = min(s=blockDim.x/2,(kmerWindow+1)/2); s > 0; s>>=1){
+                if(tx < s && tx+s <= kmerWindow-1){
                     if(windowKmerPos[tx+s+i] < windowKmerPos[tx+i]){
                         windowKmerPos[tx+i] = windowKmerPos[tx+s+i];
                     }
                 }
                 __syncthreads();
             }
-            currKmerPos=windowKmerPos[i];
-            
+            currKmerPos=windowKmerPos[i];     
             if (currKmerPos != lastKmerPos) {
+
                 uint32_t kmer = (currKmerPos >> 32) & kmerMask; 
                 uint32_t pos = currKmerPos & posMask;
                 uint32_t e = d_kmerOffset[kmer];
@@ -711,6 +712,7 @@ __global__ void readMapper(
                 }
 
                 for (uint32_t p=s; p<e; p++) {
+
                     uint32_t hitPos = d_kmerPos[p];
                     uint32_t refStart=0, qStart=0;
                     uint32_t alignLen = readLen;
@@ -726,49 +728,56 @@ __global__ void readMapper(
                     }
 
                     if (qStart > 0) {
+
                         alignLen = min(alignLen , readLen-qStart);
                     }
+               __shared__ uint32_t blockScores[1024]; // Shared memory for storing scores within a block
+                uint32_t mappingScore = 0;
+                int tx = threadIdx.x;
 
-                    uint32_t mappingScore=0;
+                // Initialize shared memory for parallel prefix sum
+                if (tx < alignLen) {
+                    uint32_t rIndex = (refStart + tx) / 16;
+                    uint32_t rShift = 2 * ((refStart + tx) % 16);
+                    uint32_t qIndex = (qStart + tx) / 16;
+                    uint32_t qShift = 2 * ((qStart + tx) % 16);
 
-                    // prefix sum using scan
-                    // reference: https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
-                    uint32_t rIndex = (refStart+tx-1)/16;
-                    uint32_t rShift = 2*((refStart+tx-1)%16);
-                    uint32_t qIndex = (qStart+tx-1)/16;
-                    uint32_t qShift = 2*((qStart+tx-1)%16);
-
-                    int pout=0, pin=1;
-                    
-                    if(tx <= alignLen)
-                        prefixSumArray[pout*(alignLen+1) + tx] = (tx > 0) ? ((d_compressedRef[rIndex] >> rShift) & twoBitMask) == ((s_compressedReadBatch[qIndex] >> qShift) & twoBitMask) : 0;
-
-                    __syncthreads();
-                    for(int offset = 1; offset < alignLen; offset *= 2){
-                        if(tx <= alignLen){
-                            pout = 1 - pout;
-                            pin = 1 - pin;
-                            if(tx >= offset){
-                                prefixSumArray[pout*(alignLen+1)+tx] = prefixSumArray[pin*(alignLen+1)+tx] + prefixSumArray[pin*(alignLen+1)+tx-offset];
-                            } else {
-                                prefixSumArray[pout*(alignLen+1)+tx] = prefixSumArray[pin*(alignLen+1)+tx];
-                            }
-                        }
-                        __syncthreads();
+                    // Compare nucleotides and assign scores
+                    if (((d_compressedRef[rIndex] >> rShift) & twoBitMask) == 
+                        ((sharedRead[qIndex] >> qShift) & twoBitMask)) {
+                        blockScores[tx] = 1;
+                    } else {
+                        blockScores[tx] = 0;
                     }
-                    mappingScore = prefixSumArray[pout*(alignLen+1)+alignLen];
+                } else {
+                    // Initialize unused parts of shared memory to 0
+                    blockScores[tx] = 0;
+                }
+                __syncthreads();
 
-                    if (mappingScore > bestMappingScore) {
+                // Perform parallel prefix sum (scan) in shared memory
+                for (int offset = 1; offset < alignLen; offset *= 2) {
+                    int temp = (tx >= offset) ? blockScores[tx - offset] : 0;
+                    __syncthreads();
+                    if (tx >= offset) {
+                        blockScores[tx] += temp;
+                    }
+                    __syncthreads();
+                }
+
+                // First thread in the block writes the total mapping score to the output array
+                if (tx == 0) {
+                    mappingScore = blockScores[alignLen - 1]; // Last element of the scan result is the total
+                }
+                    //mappingScore = *globalSum;
+                                        if (mappingScore > bestMappingScore) {
                         bestMappingScore = mappingScore;
                         bestMappingStartCoords = refStart;
                         bestMappingEndCoords = refStart+alignLen; 
-                    }
-
+                                        }
                 }
             }
-
             lastKmerPos = currKmerPos;
-
         }
 
         if(tx == 0){
@@ -780,6 +789,9 @@ __global__ void readMapper(
 }
 
 
+
+
+
 /**
  * Accepts (i) referenceArrays containing the reference sequence and its seed
  * table, (ii) a batch of reads, (iii) minimizer seed parameters (k-mer size and
@@ -788,20 +800,24 @@ __global__ void readMapper(
  * */
 void GpuReadMapper::mapReadBatch (
         GpuReadMapper::ReferenceArrays referenceArrays,
-        GpuReadMapper::ReadBatch* readBatch,
+        GpuReadMapper::ReadBatch
+        * readBatch,
         uint32_t kmerSize,
         uint32_t kmerWindow) {
 
     uint64_t numReads = readBatch->readDesc.size();
-
     // 
+   // printf("kmerWindow = %d\n",kmerWindow);
     int numBlocks = 8912; // i.e. number of thread blocks on the GPU
     int blockSize = 512; // i.e. number of GPU threads per thread block
 
+    uint32_t* globalSum;
+    cudaMalloc(&globalSum, sizeof(uint32_t));
+    cudaMemset(globalSum, 0, sizeof(uint32_t));
     readMapper<<<numBlocks, blockSize>>>(numReads, readBatch->readLen, readBatch->d_compressedReadBatch, 
             referenceArrays.d_kmerOffset, referenceArrays.d_kmerPos, kmerSize, kmerWindow, 
             referenceArrays.d_compressedRef, referenceArrays.refLen,
-            readBatch->d_mappingScores, readBatch->d_mappingStartCoords, readBatch->d_mappingEndCoords); 
+            readBatch->d_mappingScores, readBatch->d_mappingStartCoords, readBatch->d_mappingEndCoords,globalSum); 
     
     cudaError_t err;
     

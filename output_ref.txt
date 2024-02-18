@@ -3,7 +3,25 @@
 -- Configuring done
 -- Generating done
 -- Build files have been written to: /home/snayini/assgn3-4-saianudeep1729/build
+Scanning dependencies of target readMapper
+[ 25%] Building CUDA object CMakeFiles/readMapper.dir/src/readMapper.cu.o
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(280): warning #177-D: variable "stride" was declared but never referenced
+     int stride = bs;
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(327): warning #177-D: variable "kmer" was declared but never referenced
+      uint32_t kmer = 0;
+               ^
+
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(328): warning #177-D: variable "lastKmer" was declared but never referenced
+      uint32_t lastKmer = 0;
+               ^
+
+[ 50%] Linking CXX executable readMapper
 [100%] Built target readMapper
+==296== NVPROF is profiling process 296, command: ./readMapper --reference ../data/reference.fa --reads ../data/reads.fa --maxReads 40 --batchSize 10
 Setting CPU threads to 4 and printing GPU device properties.
 Device Number: 0
   Device name: NVIDIA GeForce RTX 2080 Ti
@@ -11,12 +29,12 @@ Device Number: 0
   Memory Clock Rate (KHz): 7000000
   Memory Bus Width (bits): 352
   Peak Memory Bandwidth (GB/s): 616.000000
-Completed in 49 msec 
+Completed in 247 msec 
 
 Reading reference sequence and compressing to two-bit encoding.
 Sequence name: reference
 Sequence size: 25000000
-Completed in 40 msec 
+Completed in 21 msec 
 
 Compressing reference, transferring to GPU device and constructing the seed table.
 i	kmerOffset[i]	kmerPos[i]
@@ -30,7 +48,7 @@ i	kmerOffset[i]	kmerPos[i]
 7	39	9294742
 8	42	9903431
 9	45	13940308
-Completed in 7413 msec 
+Completed in 247 msec 
 
 Reading read file ../data/reads.fa and mapping the reads to the reference.
 READ_ID	MAP_SCORE	START_COORD	END_COORD
@@ -74,6 +92,43 @@ read_37	256	21369433	21369689
 read_38	93	1412489	1412745
 read_39	249	18522935	18523191
 read_40	242	23425566	23425822
-Completed in 19 msec 
+Completed in 24 msec 
 
 Clearing reference arrays and exiting.
+==296== Profiling application: ./readMapper --reference ../data/reference.fa --reads ../data/reads.fa --maxReads 40 --batchSize 10
+==296== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   42.65%  21.739ms         4  5.4347ms  4.9547ms  6.4461ms  readMapper(unsigned long, unsigned int, unsigned int*, unsigned int*, unsigned long*, unsigned int, unsigned int, unsigned int*, unsigned int, unsigned int*, unsigned int*, unsigned int*)
+                   33.37%  17.009ms         1  17.009ms  17.009ms  17.009ms  kmerOffsetFill(unsigned int, unsigned int, unsigned int, unsigned int*, unsigned long*)
+                   18.77%  9.5698ms         8  1.1962ms  1.0905ms  1.2614ms  void cub::CUB_200200_750_NS::DeviceRadixSortOnesweepKernel<cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900, bool=0, unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int, int, int, cub::CUB_200200_750_NS::detail::identity_decomposer_t>(cub::CUB_200200_750_NS::NullType*, cub::CUB_200200_750_NS::NullType, bool=0*, cub::CUB_200200_750_NS::NullType* const *, unsigned int*, cub::CUB_200200_750_NS::NullType* const * const *, cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900*, cub::CUB_200200_750_NS::NullType* const * const * const *, unsigned long, int, int, unsigned int)
+                    2.37%  1.2076ms         5  241.51us     671ns  1.2047ms  [CUDA memcpy HtoD]
+                    1.55%  792.58us         1  792.58us  792.58us  792.58us  void cub::CUB_200200_750_NS::DeviceRadixSortHistogramKernel<cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900, bool=0, unsigned long, unsigned int, cub::CUB_200200_750_NS::detail::identity_decomposer_t>(cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900*, unsigned int const *, cub::CUB_200200_750_NS::DeviceRadixSortHistogramKernel<cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900, bool=0, unsigned long, unsigned int, cub::CUB_200200_750_NS::detail::identity_decomposer_t>, int, int, bool=0)
+                    0.93%  472.13us         1  472.13us  472.13us  472.13us  kmerPosConcat(unsigned int*, unsigned int, unsigned int, unsigned long*)
+                    0.28%  140.96us        10  14.096us  1.4400us  17.984us  [CUDA memset]
+                    0.04%  20.770us        14  1.4830us  1.2470us  2.7530us  [CUDA memcpy DtoH]
+                    0.03%  17.217us         1  17.217us  17.217us  17.217us  kmerPosMask(unsigned int, unsigned int, unsigned long*)
+                    0.00%  2.3040us         1  2.3040us  2.3040us  2.3040us  void cub::CUB_200200_750_NS::DeviceRadixSortExclusiveSumKernel<cub::CUB_200200_750_NS::DeviceRadixSortPolicy<unsigned long, cub::CUB_200200_750_NS::NullType, unsigned int>::Policy900, unsigned int>(cub::CUB_200200_750_NS::NullType*)
+      API calls:   70.03%  132.29ms        20  6.6144ms  1.9750us  129.97ms  cudaMalloc
+                   12.33%  23.295ms        19  1.2260ms  6.7930us  6.4530ms  cudaMemcpy
+                    9.02%  17.041ms         6  2.8402ms  1.7130us  17.024ms  cudaDeviceSynchronize
+                    7.82%  14.770ms        20  738.49us  2.0690us  10.816ms  cudaFree
+                    0.27%  508.25us       114  4.4580us      92ns  253.64us  cuDeviceGetAttribute
+                    0.23%  437.87us         1  437.87us  437.87us  437.87us  cudaGetDeviceProperties
+                    0.12%  218.05us         1  218.05us  218.05us  218.05us  cuLibraryLoadData
+                    0.08%  155.67us        17  9.1560us  3.4120us  41.231us  cudaLaunchKernel
+                    0.04%  82.530us         1  82.530us  82.530us  82.530us  cuDeviceGetName
+                    0.03%  61.212us        10  6.1210us  3.4100us  17.257us  cudaMemsetAsync
+                    0.00%  7.2150us         1  7.2150us  7.2150us  7.2150us  cudaFuncGetAttributes
+                    0.00%  6.3960us         1  6.3960us  6.3960us  6.3960us  cudaStreamSynchronize
+                    0.00%  6.2190us         1  6.2190us  6.2190us  6.2190us  cuDeviceGetPCIBusId
+                    0.00%  5.5630us        49     113ns      76ns  1.4330us  cudaGetLastError
+                    0.00%  4.5110us         1  4.5110us  4.5110us  4.5110us  cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags
+                    0.00%  2.4830us         2  1.2410us     221ns  2.2620us  cudaGetDeviceCount
+                    0.00%  2.0680us         4     517ns     208ns  1.1650us  cudaGetDevice
+                    0.00%  1.6470us         1  1.6470us  1.6470us  1.6470us  cudaDeviceGetAttribute
+                    0.00%  1.2570us         3     419ns     123ns     977ns  cuDeviceGetCount
+                    0.00%  1.1080us        10     110ns      95ns     167ns  cudaPeekAtLastError
+                    0.00%     446ns         1     446ns     446ns     446ns  cuModuleGetLoadingMode
+                    0.00%     441ns         1     441ns     441ns     441ns  cuDeviceTotalMem
+                    0.00%     440ns         2     220ns     189ns     251ns  cuDeviceGet
+                    0.00%     394ns         1     394ns     394ns     394ns  cuDeviceGetUuid

@@ -1,0 +1,8 @@
+/home/snayini/assgn3-4-saianudeep1729
+-- Building Intel TBB: /usr/bin/make -j64 tbb_build_prefix=tbb_cmake_build_subdir tbb_build_dir=/home/snayini/assgn3-4-saianudeep1729/build/tbb_cmake_build compiler=gcc tbb_cpf=1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/snayini/assgn3-4-saianudeep1729/build
+[100%] Built target readMapper
+Warning: LBR backtrace method is not supported on this platform. DWARF backtrace method will be used.
+Collecting data...
