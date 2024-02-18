@@ -808,8 +808,8 @@ void GpuReadMapper::mapReadBatch (
     uint64_t numReads = readBatch->readDesc.size();
     // 
    // printf("kmerWindow = %d\n",kmerWindow);
-    int numBlocks = 8912; // i.e. number of thread blocks on the GPU
-    int blockSize = 512; // i.e. number of GPU threads per thread block
+    int numBlocks = 16384; // i.e. number of thread blocks on the GPU
+    int blockSize = 256; // i.e. number of GPU threads per thread block
 
     uint32_t* globalSum;
     cudaMalloc(&globalSum, sizeof(uint32_t));
