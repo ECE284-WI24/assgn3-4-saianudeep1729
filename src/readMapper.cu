@@ -96,6 +96,7 @@ void GpuReadMapper::transferReadBatch(GpuReadMapper::ReadBatch* readBatch) {
  * HINT: consider using a tbb::mutex and defining it in readMapper.cuh 
  * BONUS: Also maintain the relative order of batches during the printing 
  */
+ 
 void GpuReadMapper::printReadBatch(GpuReadMapper::ReadBatch* readBatch) {
     if (!GpuReadMapper::headerPrinted) {
         printf("READ_ID\tMAP_SCORE\tSTART_COORD\tEND_COORD\n");
@@ -107,6 +108,26 @@ void GpuReadMapper::printReadBatch(GpuReadMapper::ReadBatch* readBatch) {
     }
 }
 
+/*
+#include <tbb/mutex.h>
+
+// Define the mutex as a static member in GpuReadMapper class definition
+static tbb::mutex printMutex;
+
+void GpuReadMapper::printReadBatch(GpuReadMapper::ReadBatch* readBatch) {
+    tbb::mutex::scoped_lock lock(printMutex); // Lock will be automatically released when lock goes out of scope
+    
+    if (!GpuReadMapper::headerPrinted) {
+        printf("READ_ID\tMAP_SCORE\tSTART_COORD\tEND_COORD\n");
+        GpuReadMapper::headerPrinted = true;
+    }
+    
+    for (uint64_t i=0; i < readBatch->readDesc.size(); i++) {
+        printf("%s\t%u\t%u\t%u\n", readBatch->readDesc[i].c_str(), readBatch->mappingScores[i],
+               readBatch->mappingStartCoords[i], readBatch->mappingEndCoords[i]);
+    }
+}
+*/
 /**
  * Free allocated host and GPU device memory for the different arrays
  */
