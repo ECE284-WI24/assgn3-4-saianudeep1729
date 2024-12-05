@@ -6,7 +6,7 @@
 #include "twoBitCompressor.hpp"
 #include "kseq.h"
 #include "zlib.h"
-
+#include <tbb/tbb.h>
 // For parsing the command line values
 namespace po = boost::program_options;
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     ("kmerWindow,w", po::value<uint32_t>(&kmerWindow)->default_value(16), "Minimizer window size (range: 1-32)")
     ("maxReads,N", po::value<uint32_t>(&maxReads)->default_value(1e6), "Maximum number of reads to read from the input read sequence file")
     ("batchSize,b", po::value<uint32_t>(&batchSize)->default_value(32), "Number of reads in a batch")
-    ("numThreads,T", po::value<uint32_t>(&numThreads)->default_value(4), "Number of Threads (range: 1-8)")
+    ("numThreads,T", po::value<uint32_t>(&numThreads)->default_value(8), "Number of Threads (range: 1-8)")
     ("help,h", "Print help messages");
 
     po::options_description allOptions;
@@ -112,6 +112,7 @@ int main(int argc, char** argv) {
     uint32_t batchReads = 0;
     //size_t compressedReadSize = (readSize+15/16);
     GpuReadMapper::ReadBatch* readBatch;
+    /*
     while ((kseq_read(read) >= 0) && (totReads < maxReads)) {
         totReads++;
         batchReads++;
@@ -134,6 +135,7 @@ int main(int argc, char** argv) {
         // HINT: Use tbb::pipeline (remember to set the tokens to numThreads and
         // be careful about serial and parallel mode for filter chain) for the
         // while loop
+        
         if (batchReads == batchSize) {
             GpuReadMapper::transferReadBatch(readBatch);
             GpuReadMapper::mapReadBatch(referenceArrays, readBatch, kmerSize, kmerWindow);
@@ -142,15 +144,59 @@ int main(int argc, char** argv) {
             batchReads = 0;
         }
     }
+    */
+        
+        // If the number of reads in the batch equals batchSize, do the
+        // following:
+        // 1. transfer the batch of reads
+        // 2. map each read to highest-scoring location in the reference
+        // 3. print the details of the mapped reads
+        // 4. clear the memory allocated for the read batch
+        // ASSIGNMENT 4 TASK: Implement pipeline parallelism for the 4 stages
+        // HINT: Use tbb::pipeline (remember to set the tokens to numThreads and
+        // be careful about serial and parallel mode for filter chain) for the
+        // while loop
+        /*
+        if (batchReads == batchSize) {
+            GpuReadMapper::transferReadBatch(readBatch);
+            GpuReadMapper::mapReadBatch(referenceArrays, readBatch, kmerSize, kmerWindow);
+            GpuReadMapper::printReadBatch(readBatch);
+            GpuReadMapper::clearReadBatch(readBatch);
+            batchReads = 0;
+        }*/
+        tbb::parallel_pipeline(
+            numThreads,
+        tbb::make_filter<void, GpuReadMapper::ReadBatch*>(
+            tbb::filter::serial_in_order, [&](tbb::flow_control& fc) -> GpuReadMapper::ReadBatch* {    
+                while((totReads < maxReads) && (batchReads < batchSize) && (kseq_read(read) >= 0)){
+                    totReads++;
+                    batchReads++;
+                    if (batchReads == 1) {
+                        readBatch = new GpuReadMapper::ReadBatch(readSize, batchSize);
+                    }
 
-    // Map the residual batch of reads
-    if (batchReads > 0) {
-        GpuReadMapper::transferReadBatch(readBatch);
-        GpuReadMapper::mapReadBatch(referenceArrays, readBatch, kmerSize, kmerWindow);
-        GpuReadMapper::printReadBatch(readBatch);
-        GpuReadMapper::clearReadBatch(readBatch);
-    }
+                    readBatch->addRead(read->name.s, read->name.l, read->seq.s, read->seq.l);
+                }
 
+                if((totReads >= maxReads) && batchReads==0){
+                    fc.stop();
+                }
+                batchReads=0;
+                GpuReadMapper::transferReadBatch(readBatch);
+                return readBatch;
+        }) & tbb::make_filter<GpuReadMapper::ReadBatch*, GpuReadMapper::ReadBatch*> (
+            tbb::filter::parallel, [&](GpuReadMapper::ReadBatch* readBatch) -> GpuReadMapper::ReadBatch* {
+                GpuReadMapper::mapReadBatch(referenceArrays, readBatch, kmerSize, kmerWindow);
+                return readBatch;
+        }) & tbb::make_filter<GpuReadMapper::ReadBatch*, GpuReadMapper::ReadBatch*> (
+            tbb::filter::serial_in_order, [&](GpuReadMapper::ReadBatch* readBatch) {
+                GpuReadMapper::printReadBatch(readBatch);
+                return readBatch;
+        }) & tbb::make_filter<GpuReadMapper::ReadBatch*, void>(
+            tbb::filter::parallel, [&](GpuReadMapper::ReadBatch* readBatch) {
+                GpuReadMapper::clearReadBatch(readBatch);
+        })
+    );
     if (totReads == 0) {
         fprintf(stderr, "ERROR: No reads found!\n");
         exit(1);

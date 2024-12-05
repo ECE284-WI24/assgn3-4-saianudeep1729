@@ -1,0 +1,101 @@
+/home/snayini/assgn3-4-saianudeep1729
+-- Building Intel TBB: /usr/bin/make -j64 tbb_build_prefix=tbb_cmake_build_subdir tbb_build_dir=/home/snayini/assgn3-4-saianudeep1729/build/tbb_cmake_build compiler=gcc tbb_cpf=1
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/snayini/assgn3-4-saianudeep1729/build
+Scanning dependencies of target readMapper
+[ 25%] Building CUDA object CMakeFiles/readMapper.dir/src/readMapper.cu.o
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(729): error: identifier "al" is undefined
+                          alignLen = min(al
+                                         ^
+
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(730): error: expected a ")"
+                          ignLen , readLen-qStart);
+                          ^
+
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(729): error: no instance of overloaded function "min" matches the argument list
+            argument types are: (<error-type>)
+                          alignLen = min(al
+                                     ^
+
+/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu(770): error: identifier "bestMappin" is undefined
+                          bestMappin
+                          ^
+
+4 errors detected in the compilation of "/home/snayini/assgn3-4-saianudeep1729/src/readMapper.cu".
+make[2]: *** [CMakeFiles/readMapper.dir/build.make:63: CMakeFiles/readMapper.dir/src/readMapper.cu.o] Error 2
+make[1]: *** [CMakeFiles/Makefile2:76: CMakeFiles/readMapper.dir/all] Error 2
+make: *** [Makefile:84: all] Error 2
+Setting CPU threads to 4 and printing GPU device properties.
+Device Number: 0
+  Device name: NVIDIA A30
+  Device memory: 25412829184
+  Memory Clock Rate (KHz): 1215000
+  Memory Bus Width (bits): 3072
+  Peak Memory Bandwidth (GB/s): 933.120000
+Completed in 30 msec 
+
+Reading reference sequence and compressing to two-bit encoding.
+Sequence name: reference
+Sequence size: 25000000
+Completed in 35 msec 
+
+Compressing reference, transferring to GPU device and constructing the seed table.
+i	kmerOffset[i]	kmerPos[i]
+0	6	1465414
+1	12	3049248
+2	16	8743788
+3	22	8743789
+4	26	9294743
+5	27	9294744
+6	30	6654308
+7	39	9294742
+8	42	9903431
+9	45	13940308
+Completed in 264 msec 
+
+Reading read file ../data/reads.fa and mapping the reads to the reference.
+READ_ID	MAP_SCORE	START_COORD	END_COORD
+read_1	240	9672236	9672492
+read_2	73	12722936	12723192
+read_3	240	18980751	18981007
+read_4	240	10620279	10620535
+read_5	84	4124283	4124539
+read_6	84	21204740	21204996
+read_7	0	0	0
+read_8	240	7138455	7138711
+read_9	0	0	0
+read_10	73	11506393	11506649
+read_11	243	101563	101819
+read_12	243	5434041	5434297
+read_13	243	24348156	24348412
+read_14	243	22570424	22570680
+read_15	243	5968239	5968495
+read_16	243	7859255	7859511
+read_17	92	10938969	10939225
+read_18	243	7235223	7235479
+read_19	86	9212684	9212940
+read_20	94	16786104	16786360
+read_21	244	22559841	22560097
+read_22	79	2317596	2317852
+read_23	0	0	0
+read_24	244	14082196	14082452
+read_25	87	18736963	18737219
+read_26	244	16992851	16993107
+read_27	78	6254936	6255192
+read_28	244	23910649	23910905
+read_29	89	56469	56725
+read_30	244	18294611	18294867
+read_31	228	3642770	3643026
+read_32	92	12608074	12608330
+read_33	82	17449988	17450244
+read_34	89	16684448	16684704
+read_35	0	0	0
+read_36	0	0	0
+read_37	228	21369433	21369689
+read_38	0	0	0
+read_39	0	0	0
+read_40	0	0	0
+Completed in 3 msec 
+
+Clearing reference arrays and exiting.
